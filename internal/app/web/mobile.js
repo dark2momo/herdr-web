@@ -152,7 +152,20 @@
     { capture: true },
   );
 
-  document.addEventListener("contextmenu", (event) => event.preventDefault());
+  document.addEventListener("contextmenu", (event) => {
+    // Keep the terminal's own menu suppressed (two-finger tap is right-click),
+    // but allow the native long-press menu on the toolbar's paste input: on
+    // LAN HTTP origins the Clipboard API is unavailable, so the system menu
+    // is the only way to paste on phones.
+    const target = event.target;
+    if (
+      typeof target?.closest === "function" &&
+      target.closest(".herdr-web-input-toolbar")
+    ) {
+      return;
+    }
+    event.preventDefault();
+  });
 
   if (!(navigator.maxTouchPoints > 0 || window.matchMedia("(pointer: coarse)").matches)) {
     return;

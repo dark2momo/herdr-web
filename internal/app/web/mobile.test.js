@@ -190,6 +190,19 @@ function loadTouchMobile({
       contains(target) {
         return target === element || element.children.some((child) => child.contains?.(target));
       },
+      closest(selector) {
+        const names = selector
+          .split(",")
+          .map((part) => part.trim().replace(/^\./, ""))
+          .filter(Boolean);
+        let node = element;
+        while (node) {
+          const own = (node.className || "").split(/\s+/);
+          if (names.some((name) => own.includes(name))) return node;
+          node = node.parentNode;
+        }
+        return null;
+      },
       setAttribute() {},
       focus() {
         document.activeElement = element;
@@ -337,6 +350,17 @@ function loadTouchMobile({
   return {
     copyButton,
     toolbar,
+    terminal,
+    dispatchContextMenu(target) {
+      let prevented = false;
+      dispatchDocument("contextmenu", {
+        target,
+        preventDefault() {
+          prevented = true;
+        },
+      });
+      return prevented;
+    },
     terminalInputs,
     terminalPastes,
     terminalEvents,
@@ -470,6 +494,15 @@ test("paste input shrinks after multiline content is removed", () => {
   assert.equal(runtime.pasteInput.style.height, "72px");
   assert.equal(runtime.pasteInput.style.overflowY, "hidden");
   assert.equal(runtime.rootStyle("--herdr-web-toolbar-height"), "80px");
+});
+
+test("context menu stays suppressed over the terminal but not the paste input", () => {
+  const runtime = loadTouchMobile();
+
+  // Long-press paste menus must keep working on the toolbar input...
+  assert.equal(runtime.dispatchContextMenu(runtime.pasteInput), false);
+  // ...while the terminal keeps its menu suppressed (two-finger right-click).
+  assert.equal(runtime.dispatchContextMenu(runtime.terminal), true);
 });
 
 test("iOS virtual Chinese punctuation is forwarded as non-composition input", () => {
